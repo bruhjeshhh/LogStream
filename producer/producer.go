@@ -19,15 +19,16 @@ func main() {
 	}
 
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	_, err = conn.WriteMessages(
-		kafka.Message{Value: []byte("one!")},
-		kafka.Message{Value: []byte("two!")},
-		kafka.Message{Value: []byte("three!")},
-	)
-	if err != nil {
-		log.Fatal("failed to write messages:", err)
-	}
 
+	count := 1
+	for count == 1 {
+		_, err = conn.WriteMessages(
+			kafka.Message{Value: []byte("get in thereeee")},
+		)
+		if err != nil {
+			log.Fatal("failed to write messages:", err)
+		}
+	}
 	if err := conn.Close(); err != nil {
 		log.Fatal("failed to close writer:", err)
 	}
