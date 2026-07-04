@@ -14,7 +14,7 @@ func main() {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{"localhost:9092"},
 		Topic:    "test-logs",
-		GroupID:  "test-consumer-group",
+		GroupID:  "logsteam-ke-majdoor",
 		MaxBytes: 10e6, // 10MB
 	})
 
