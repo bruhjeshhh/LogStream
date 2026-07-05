@@ -2,14 +2,26 @@ package service
 
 import (
 	"LogStream/internal/models"
+	"encoding/json"
 	"log"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 func Ingest(payload []models.Ingestion) {
-	var validPayloads []models.Log
+	var processedPayloads []models.Log
+	var allowedLevels = []string{"trace", "debug", "info", "warn", "error", "fatal"}
+
+	validPayloads := payload[:0]
+
+	for _, pld := range payload {
+		if pld.Level != "" && pld.Message != "" && pld.Service != "" && isJSONObject(pld.Metadata) && slices.Contains(allowedLevels, strings.ToLower(pld.Level)) {
+			validPayloads = append(validPayloads, pld)
+		}
+	}
 
 	for _, pld := range payload {
 		var vldpld models.Log
@@ -24,6 +36,12 @@ func Ingest(payload []models.Ingestion) {
 		vldpld.ReceivedTimestamp = time.Now()
 		vldpld.Message = pld.Message
 		vldpld.Metadata = pld.Metadata
-		validPayloads = append(validPayloads, vldpld)
+		processedPayloads = append(processedPayloads, vldpld)
 	}
+}
+
+func isJSONObject(data []byte) bool {
+	var m map[string]any
+	// json.Unmarshal returns nil error only if it fits the target type
+	return json.Unmarshal(data, &m) == nil
 }
