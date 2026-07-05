@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func decodeIngestions(w http.ResponseWriter, r *http.Request) {
+func DecodeIngestions(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

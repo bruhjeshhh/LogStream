@@ -1,6 +1,7 @@
 package service
 
 import (
+	"LogStream/internal/buffer"
 	"LogStream/internal/models"
 	"encoding/json"
 	"log"
@@ -12,7 +13,7 @@ import (
 )
 
 func Ingest(payload []models.Ingestion) {
-	var processedPayloads []models.Log
+	// var processedPayloads []models.Log
 	var allowedLevels = []string{"trace", "debug", "info", "warn", "error", "fatal"}
 
 	validPayloads := payload[:0]
@@ -23,7 +24,7 @@ func Ingest(payload []models.Ingestion) {
 		}
 	}
 
-	for _, pld := range payload {
+	for _, pld := range validPayloads {
 		var vldpld models.Log
 		id, err := uuid.NewV7()
 		if err != nil {
@@ -36,7 +37,9 @@ func Ingest(payload []models.Ingestion) {
 		vldpld.ReceivedTimestamp = time.Now()
 		vldpld.Message = pld.Message
 		vldpld.Metadata = pld.Metadata
-		processedPayloads = append(processedPayloads, vldpld)
+		// processedPayloads = append(processedPayloads, vldpld)
+
+		buffer.Submit(vldpld)
 	}
 }
 
