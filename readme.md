@@ -1,1 +1,1 @@
-kya re lavde
+LogStream is a Log ingestion and searching service. It used Kafka,Elastic Search,and k8s(maybe). This is a work in progress, feel free to send some suggestions this way by opening an issue.
