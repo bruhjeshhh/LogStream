@@ -2,13 +2,14 @@ package api
 
 import (
 	"LogStream/internal/models"
+	"LogStream/internal/service"
 	"encoding/json"
 	"net/http"
 	"slices"
 	"strings"
 )
 
-func Ingest(w http.ResponseWriter, r *http.Request) {
+func IngestionRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -30,6 +31,9 @@ func Ingest(w http.ResponseWriter, r *http.Request) {
 			validPayloads = append(validPayloads, pld)
 		}
 	}
+
+	service.Ingest(validPayloads)
+
 }
 
 func isJSONObject(data []byte) bool {
