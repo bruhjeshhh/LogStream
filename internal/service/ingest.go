@@ -4,7 +4,7 @@ import (
 	"LogStream/internal/buffer"
 	"LogStream/internal/models"
 	"encoding/json"
-	"log"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -28,7 +28,7 @@ func Ingest(payload []models.Ingestion) {
 		var vldpld models.Log
 		id, err := uuid.NewV7()
 		if err != nil {
-			log.Fatalf("Failed to generate UUIDv7: %v", err)
+			fmt.Printf("Failed to generate UUIDv7: %v", err)
 		}
 		vldpld.ID = id
 		vldpld.Level = pld.Level
