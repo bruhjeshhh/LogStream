@@ -36,3 +36,22 @@ services:
 
 volumes:
   kafka_data:
+
+
+
+  postgres:
+  image: postgres:17
+  container_name: logstream-postgres
+
+  environment:
+    POSTGRES_USER: logstream
+    POSTGRES_PASSWORD: logstream
+    POSTGRES_DB: logstream
+
+  ports:
+    - "5432:5432"
+
+  volumes:
+    - postgres-data:/var/lib/postgresql/data
+
+  restart: unless-stopped
