@@ -37,9 +37,24 @@ services:
 volumes:
   kafka_data:
 
+elasticsearch:
+  image: docker.elastic.co/elasticsearch/elasticsearch:8.18.2
+  container_name: logstream-es
 
+  environment:
+    - discovery.type=single-node
+    - xpack.security.enabled=false
+    - ES_JAVA_OPTS=-Xms1g -Xmx1g
 
-  postgres:
+  ports:
+    - "9200:9200"
+
+  volumes:
+    - elasticsearch-data:/usr/share/elasticsearch/data
+
+  restart: unless-stopped
+
+postgres:
   image: postgres:17
   container_name: logstream-postgres
 
@@ -54,4 +69,8 @@ volumes:
   volumes:
     - postgres-data:/var/lib/postgresql/data
 
-  restart: unless-stopped
+  restart: unless-stopped  
+
+
+
+
