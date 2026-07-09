@@ -1,30 +1,40 @@
 package main
 
 import (
+	"LogStream/internal/consumer"
 	"context"
-	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/segmentio/kafka-go"
 )
 
-const (
-	broker = "localhost:9092"
-	topic  = "LogStream"
-)
-
-var reader = kafka.NewReader(kafka.ReaderConfig{
-	Brokers: []string{broker},
-	Topic:   topic,
-	GroupID: "consumers-of-logStream",
-})
-
 func main() {
-	for {
-		m, err := reader.ReadMessage(context.Background())
-		if err != nil {
-			break
-		}
-		fmt.Printf("message at offset %d: %s = %s\n", m.Offset, string(m.Key), string(m.Value)) //need to change this to maybe calling a func
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{"localhost:9092"},
+		Topic:   "LogStream",
+		GroupID: "consumers-of-logstream",
+	})
+	defer reader.Close()
+
+	worker := consumer.NewWorker()
+
+	c := consumer.NewConsumer(reader, worker)
+
+	log.Println("consumer started")
+
+	if err := c.Run(ctx); err != nil && err != context.Canceled {
+		log.Fatalf("consumer stopped with error: %v", err)
 	}
 
+	log.Println("consumer stopped")
 }
