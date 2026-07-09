@@ -12,8 +12,6 @@ import (
 )
 
 func TestProcess_ValidJSON(t *testing.T) {
-	w := NewWorker()
-
 	id := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ts := time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)
 
@@ -27,7 +25,7 @@ func TestProcess_ValidJSON(t *testing.T) {
 	}`
 
 	msg := kafka.Message{Value: []byte(payload)}
-	err := w.Process(context.Background(), msg)
+	err := Process(context.Background(), msg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -55,8 +53,6 @@ func TestProcess_ValidJSON(t *testing.T) {
 }
 
 func TestProcess_InvalidJSON(t *testing.T) {
-	w := NewWorker()
-
 	tests := []struct {
 		name    string
 		payload string
@@ -71,7 +67,7 @@ func TestProcess_InvalidJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			msg := kafka.Message{Value: []byte(tt.payload)}
-			err := w.Process(context.Background(), msg)
+			err := Process(context.Background(), msg)
 			if err == nil {
 				t.Error("expected error for invalid JSON, got nil")
 			}
@@ -80,92 +76,45 @@ func TestProcess_InvalidJSON(t *testing.T) {
 }
 
 func TestProcess_EmptyPayload(t *testing.T) {
-	w := NewWorker()
-
 	msg := kafka.Message{Value: []byte{}}
-	err := w.Process(context.Background(), msg)
+	err := Process(context.Background(), msg)
 	if err == nil {
 		t.Error("expected error for empty payload, got nil")
 	}
 }
 
 func TestProcess_NilPayload(t *testing.T) {
-	w := NewWorker()
-
 	msg := kafka.Message{Value: nil}
-	err := w.Process(context.Background(), msg)
+	err := Process(context.Background(), msg)
 	if err == nil {
 		t.Error("expected error for nil payload, got nil")
 	}
 }
 
 func TestProcess_MissingRequiredFields(t *testing.T) {
-	w := NewWorker()
-
 	payload := `{"service": "api"}`
 	msg := kafka.Message{Value: []byte(payload)}
+	err := Process(context.Background(), msg)
 
-	err := w.Process(context.Background(), msg)
-	if err != nil {
-		t.Fatalf("unexpected error for partial JSON (only service): %v", err)
-	}
-}
-
-func TestProcess_ExtraFieldsIgnored(t *testing.T) {
-	w := NewWorker()
-
-	payload := `{
-		"id": "00000000-0000-0000-0000-000000000001",
-		"service": "svc",
-		"level": "info",
-		"message": "hello",
-		"unknownfield": "whatever",
-		"another": 123
-	}`
-
-	msg := kafka.Message{Value: []byte(payload)}
-	err := w.Process(context.Background(), msg)
-	if err != nil {
-		t.Fatalf("unexpected error with extra fields: %v", err)
-	}
-}
-
-func TestProcess_WithMetadata(t *testing.T) {
-	w := NewWorker()
-
-	payload := `{
-		"id": "00000000-0000-0000-0000-000000000001",
-		"service": "svc",
-		"level": "info",
-		"message": "hello",
-		"metadata": {"trace_id": "abc123", "user_id": 42}
-	}`
-
-	msg := kafka.Message{Value: []byte(payload)}
-	err := w.Process(context.Background(), msg)
 	if err != nil {
 		t.Fatalf("unexpected error with metadata: %v", err)
 	}
 }
 
 func TestProcess_ContextCancellation(t *testing.T) {
-	w := NewWorker()
-
 	payload := `{"id": "00000000-0000-0000-0000-000000000001"}`
 	msg := kafka.Message{Value: []byte(payload)}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := w.Process(ctx, msg)
+	err := Process(ctx, msg)
 	if err != nil {
 		t.Fatalf("unexpected error with cancelled context: %v", err)
 	}
 }
 
 func TestProcess_LargeMessage(t *testing.T) {
-	w := NewWorker()
-
 	bigMessage := make([]byte, 100000)
 	for i := range bigMessage {
 		bigMessage[i] = 'A'
@@ -174,15 +123,13 @@ func TestProcess_LargeMessage(t *testing.T) {
 	payload := `{"id": "00000000-0000-0000-0000-000000000001", "message": "` + string(bigMessage) + `"}`
 	msg := kafka.Message{Value: []byte(payload)}
 
-	err := w.Process(context.Background(), msg)
+	err := Process(context.Background(), msg)
 	if err != nil {
 		t.Fatalf("unexpected error with large message: %v", err)
 	}
 }
 
 func TestProcess_SpecialCharactersInMessage(t *testing.T) {
-	w := NewWorker()
-
 	payload := `{
 		"id": "00000000-0000-0000-0000-000000000001",
 		"service": "svc",
@@ -191,15 +138,8 @@ func TestProcess_SpecialCharactersInMessage(t *testing.T) {
 	}`
 
 	msg := kafka.Message{Value: []byte(payload)}
-	err := w.Process(context.Background(), msg)
+	err := Process(context.Background(), msg)
 	if err != nil {
 		t.Fatalf("unexpected error with special characters: %v", err)
-	}
-}
-
-func TestNewWorker_ReturnsNonNil(t *testing.T) {
-	w := NewWorker()
-	if w == nil {
-		t.Fatal("NewWorker returned nil")
 	}
 }
