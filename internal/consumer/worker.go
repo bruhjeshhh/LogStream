@@ -9,13 +9,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-type Worker struct{}
-
-func NewWorker() *Worker {
-	return &Worker{}
-}
-
-func (w *Worker) Process(ctx context.Context, msg kafka.Message) error {
+func Process(ctx context.Context, msg kafka.Message) error {
 	var entry models.Log
 	if err := json.Unmarshal(msg.Value, &entry); err != nil {
 		return err
