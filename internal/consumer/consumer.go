@@ -7,12 +7,17 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+type Reader interface {
+	FetchMessage(ctx context.Context) (kafka.Message, error)
+	CommitMessages(ctx context.Context, msgs ...kafka.Message) error
+}
+
 type Consumer struct {
-	reader *kafka.Reader
+	reader Reader
 	worker *Worker
 }
 
-func NewConsumer(reader *kafka.Reader, worker *Worker) *Consumer {
+func NewConsumer(reader Reader, worker *Worker) *Consumer {
 	return &Consumer{
 		reader: reader,
 		worker: worker,
