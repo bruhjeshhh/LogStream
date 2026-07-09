@@ -26,13 +26,9 @@ func main() {
 	})
 	defer reader.Close()
 
-	worker := consumer.NewWorker()
-
-	c := consumer.NewConsumer(reader, worker)
-
 	log.Println("consumer started")
 
-	if err := c.Run(ctx); err != nil && err != context.Canceled {
+	if err := consumer.Run(ctx, reader); err != nil && err != context.Canceled {
 		log.Fatalf("consumer stopped with error: %v", err)
 	}
 
