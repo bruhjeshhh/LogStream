@@ -29,7 +29,6 @@ func InitElastic() error {
 }
 
 func index(ctx context.Context, entry models.Log) error {
-
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		return err
@@ -40,10 +39,14 @@ func index(ctx context.Context, entry models.Log) error {
 		bytes.NewReader(jsonData),
 		es.Index.WithDocumentID(entry.ID.String()),
 	)
+	if err != nil {
+		return fmt.Errorf("elasticsearch request failed: %w", err)
+	}
+	defer res.Body.Close()
+
 	if res.IsError() {
 		return fmt.Errorf("elasticsearch returned %s", res.Status())
 	}
-	defer res.Body.Close()
 
 	return nil
 }

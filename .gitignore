@@ -26,6 +26,7 @@ go.work.sum
 
 # Compiled binary
 ingestion
+/consumer
 
 # env file
 .env
@@ -33,5 +34,4 @@ ingestion
 # Editor/IDE
 # .idea/
 # .vscode/
-
 
