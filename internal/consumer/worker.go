@@ -16,12 +16,15 @@ func Process(ctx context.Context, msg kafka.Message) error {
 	}
 
 	log.Printf(
-		"processed log id=%s service=%s level=%s message=%q",
+		"pushing log id=%s service=%s level=%s message=%q",
 		entry.ID,
 		entry.Service,
 		entry.Level,
 		entry.Message,
 	)
+	if elasticerr := index(ctx, entry); elasticerr != nil {
+		return elasticerr
+	}
 
 	return nil
 }

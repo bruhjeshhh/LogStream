@@ -32,5 +32,9 @@ func main() {
 		log.Fatalf("consumer stopped with error: %v", err)
 	}
 
+	if err := consumer.InitElastic(); err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("consumer stopped")
 }
