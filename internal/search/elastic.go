@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
 )
@@ -28,12 +29,32 @@ func InitElastic() error {
 	return nil
 }
 
+type SearchRequest struct {
+	Service string
+	Level   string
+	From    *time.Time
+	To      *time.Time
+	Q       string
+	Page    int
+	Size    int
+}
+
+type SearchResponse struct {
+	Hits  []models.Log `json:"hits"`
+	Total int64        `json:"total"`
+	Page  int          `json:"page"`
+	Size  int          `json:"size"`
+}
+
 type Repository struct {
 	client *elasticsearch.Client
 }
 
-type searchResponse struct {
+type esSearchResponse struct {
 	Hits struct {
+		Total struct {
+			Value int64 `json:"value"`
+		} `json:"total"`
 		Hits []struct {
 			Source models.Log `json:"_source"`
 		} `json:"hits"`
@@ -46,22 +67,21 @@ func NewRepository(client *elasticsearch.Client) *Repository {
 	}
 }
 
-func (r *Repository) SearchAll(ctx context.Context) ([]models.Log, error) {
-
-	query := map[string]any{
-		"query": map[string]any{
-			"match_all": map[string]any{},
-		},
-	}
+func (r *Repository) Search(ctx context.Context, req SearchRequest) (*SearchResponse, error) {
+	query := buildQuery(req)
 	body, err := json.Marshal(query)
 	if err != nil {
-		return nil, fmt.Errorf("couldnt marshal", err)
+		return nil, fmt.Errorf("could not marshal query: %w", err)
 	}
+
+	from := (req.Page - 1) * req.Size
 
 	res, err := r.client.Search(
 		r.client.Search.WithContext(ctx),
-		r.client.Search.WithIndex("logs"), // your index name
+		r.client.Search.WithIndex("logs"),
 		r.client.Search.WithBody(bytes.NewReader(body)),
+		r.client.Search.WithFrom(from),
+		r.client.Search.WithSize(req.Size),
 	)
 	if err != nil {
 		return nil, err
@@ -72,19 +92,78 @@ func (r *Repository) SearchAll(ctx context.Context) ([]models.Log, error) {
 		return nil, fmt.Errorf("elasticsearch returned %s", res.Status())
 	}
 
-	var resp searchResponse
-
-	err = json.NewDecoder(res.Body).Decode(&resp)
-	if err != nil {
+	var esResp esSearchResponse
+	if err := json.NewDecoder(res.Body).Decode(&esResp); err != nil {
 		return nil, err
 	}
 
-	logs := make([]models.Log, 0, len(resp.Hits.Hits))
-
-	for _, hit := range resp.Hits.Hits {
-		logs = append(logs, hit.Source)
+	hits := make([]models.Log, 0, len(esResp.Hits.Hits))
+	for _, hit := range esResp.Hits.Hits {
+		hits = append(hits, hit.Source)
 	}
 
-	return logs, nil
+	return &SearchResponse{
+		Hits:  hits,
+		Total: esResp.Hits.Total.Value,
+		Page:  req.Page,
+		Size:  req.Size,
+	}, nil
+}
 
+func buildQuery(req SearchRequest) map[string]any {
+	var must []map[string]any
+	var filter []map[string]any
+
+	if req.Service != "" {
+		filter = append(filter, map[string]any{
+			"term": map[string]any{"service": req.Service},
+		})
+	}
+
+	if req.Level != "" {
+		filter = append(filter, map[string]any{
+			"term": map[string]any{"level": req.Level},
+		})
+	}
+
+	if req.From != nil || req.To != nil {
+		rangeMap := map[string]any{}
+		if req.From != nil {
+			rangeMap["gte"] = req.From.Format(time.RFC3339)
+		}
+		if req.To != nil {
+			rangeMap["lte"] = req.To.Format(time.RFC3339)
+		}
+		filter = append(filter, map[string]any{
+			"range": map[string]any{"timestamp": rangeMap},
+		})
+	}
+
+	if req.Q != "" {
+		must = append(must, map[string]any{
+			"match": map[string]any{"message": req.Q},
+		})
+	}
+
+	if len(must) == 0 && len(filter) == 0 {
+		return map[string]any{
+			"query": map[string]any{
+				"match_all": map[string]any{},
+			},
+		}
+	}
+
+	boolQuery := map[string]any{}
+	if len(must) > 0 {
+		boolQuery["must"] = must
+	}
+	if len(filter) > 0 {
+		boolQuery["filter"] = filter
+	}
+
+	return map[string]any{
+		"query": map[string]any{
+			"bool": boolQuery,
+		},
+	}
 }
