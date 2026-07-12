@@ -22,6 +22,9 @@ func main() {
 	if err := consumer.InitElastic(); err != nil {
 		log.Fatalf("failed to init elasticsearch: %v", err)
 	}
+	if err := consumer.InitPostgres(ctx); err != nil {
+		log.Fatalf("failed to initialize postgres: %v", err)
+	}
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{"localhost:9092"},

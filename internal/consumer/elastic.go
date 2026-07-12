@@ -12,6 +12,10 @@ import (
 
 var es *elasticsearch.Client
 
+func SetClient(client *elasticsearch.Client) {
+	es = client
+}
+
 func InitElastic() error {
 	cfg := elasticsearch.Config{
 		Addresses: []string{
@@ -29,6 +33,9 @@ func InitElastic() error {
 }
 
 func index(ctx context.Context, entry models.Log) error {
+	if es == nil {
+		return fmt.Errorf("elasticsearch client is not initialized")
+	}
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		return err
