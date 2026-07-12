@@ -67,8 +67,12 @@ func NewRepository(client *elasticsearch.Client) *Repository {
 	}
 }
 
+func SetRepository(r *Repository) {
+	repo = r
+}
+
 func (r *Repository) Search(ctx context.Context, req SearchRequest) (*SearchResponse, error) {
-	query := buildQuery(req)
+	query := BuildQuery(req)
 	body, err := json.Marshal(query)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal query: %w", err)
@@ -110,7 +114,7 @@ func (r *Repository) Search(ctx context.Context, req SearchRequest) (*SearchResp
 	}, nil
 }
 
-func buildQuery(req SearchRequest) map[string]any {
+func BuildQuery(req SearchRequest) map[string]any {
 	var must []map[string]any
 	var filter []map[string]any
 
