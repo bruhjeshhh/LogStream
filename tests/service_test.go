@@ -1,24 +1,15 @@
-package service
+package tests
 
 import (
 	"LogStream/internal/buffer"
 	"LogStream/internal/models"
+	"LogStream/internal/service"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-func drainIngestChan() {
-	for {
-		select {
-		case <-buffer.IngestChan:
-		default:
-			return
-		}
-	}
-}
 
 func TestIngest_ValidEntrySubmitted(t *testing.T) {
 	drainIngestChan()
@@ -32,7 +23,7 @@ func TestIngest_ValidEntrySubmitted(t *testing.T) {
 		},
 	}
 
-	Ingest(payload)
+	service.Ingest(payload)
 
 	select {
 	case log := <-buffer.IngestChan:
@@ -51,8 +42,6 @@ func TestIngest_ValidEntrySubmitted(t *testing.T) {
 		if log.ReceivedTimestamp.IsZero() {
 			t.Error("ReceivedTimestamp should be set")
 		}
-		// EventTimestamp should be forwarded from Ingestion.Timestamp
-		// EventTimestamp is forwarded from Ingestion.Timestamp; if not provided it's zero
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for log on IngestChan")
 	}
@@ -62,7 +51,7 @@ func TestIngest_ValidEntryAllLevels(t *testing.T) {
 	levels := []string{"trace", "debug", "info", "warn", "error", "fatal"}
 	for _, level := range levels {
 		drainIngestChan()
-		Ingest([]models.Ingestion{{
+		service.Ingest([]models.Ingestion{{
 			Service:  "svc",
 			Level:    level,
 			Message:  "msg",
@@ -81,7 +70,7 @@ func TestIngest_ValidEntryAllLevels(t *testing.T) {
 
 func TestIngest_LevelCaseInsensitive(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "INFO",
 		Message:  "msg",
@@ -99,7 +88,7 @@ func TestIngest_LevelCaseInsensitive(t *testing.T) {
 
 func TestIngest_RejectsEmptyService(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "",
 		Level:    "info",
 		Message:  "msg",
@@ -114,7 +103,7 @@ func TestIngest_RejectsEmptyService(t *testing.T) {
 
 func TestIngest_RejectsEmptyLevel(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "",
 		Message:  "msg",
@@ -129,7 +118,7 @@ func TestIngest_RejectsEmptyLevel(t *testing.T) {
 
 func TestIngest_RejectsEmptyMessage(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "info",
 		Message:  "",
@@ -144,7 +133,7 @@ func TestIngest_RejectsEmptyMessage(t *testing.T) {
 
 func TestIngest_RejectsInvalidLevel(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "critical",
 		Message:  "msg",
@@ -159,7 +148,7 @@ func TestIngest_RejectsInvalidLevel(t *testing.T) {
 
 func TestIngest_RejectsNonObjectMetadata(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "info",
 		Message:  "msg",
@@ -174,7 +163,7 @@ func TestIngest_RejectsNonObjectMetadata(t *testing.T) {
 
 func TestIngest_RejectsArrayMetadata(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "info",
 		Message:  "msg",
@@ -189,7 +178,7 @@ func TestIngest_RejectsArrayMetadata(t *testing.T) {
 
 func TestIngest_NilMetadataRejected(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service: "svc",
 		Level:   "info",
 		Message: "msg",
@@ -203,7 +192,7 @@ func TestIngest_NilMetadataRejected(t *testing.T) {
 
 func TestIngest_GeneratedUUIDIsNotNil(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "info",
 		Message:  "msg",
@@ -214,7 +203,6 @@ func TestIngest_GeneratedUUIDIsNotNil(t *testing.T) {
 		if log.ID == uuid.Nil {
 			t.Error("UUID should not be nil")
 		}
-		// UUID v7 has version 7 (0x70) in the most significant nibble of byte 6
 		if log.ID[6]>>4 != 7 {
 			t.Errorf("expected UUIDv7, got version %d", log.ID[6]>>4)
 		}
@@ -226,7 +214,7 @@ func TestIngest_GeneratedUUIDIsNotNil(t *testing.T) {
 func TestIngest_ReceivedTimestampIsRecent(t *testing.T) {
 	drainIngestChan()
 	before := time.Now()
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "info",
 		Message:  "msg",
@@ -256,7 +244,7 @@ func TestIngest_MultipleValidEntries(t *testing.T) {
 		}
 	}
 
-	Ingest(payload)
+	service.Ingest(payload)
 
 	for i := 0; i < count; i++ {
 		select {
@@ -281,7 +269,7 @@ func TestIngest_MixedValidAndInvalid(t *testing.T) {
 		{Service: "svc", Level: "info", Message: "valid2", Metadata: json.RawMessage(`{}`)},
 	}
 
-	Ingest(payload)
+	service.Ingest(payload)
 
 	select {
 	case log := <-buffer.IngestChan:
@@ -311,7 +299,7 @@ func TestIngest_MixedValidAndInvalid(t *testing.T) {
 func TestIngest_ForwardedTimestamp(t *testing.T) {
 	drainIngestChan()
 	ts := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:   "svc",
 		Level:     "info",
 		Message:   "msg",
@@ -330,7 +318,7 @@ func TestIngest_ForwardedTimestamp(t *testing.T) {
 
 func TestIngest_EmptyPayload(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{})
+	service.Ingest([]models.Ingestion{})
 	select {
 	case <-buffer.IngestChan:
 		t.Error("expected no logs for empty payload")
@@ -340,7 +328,7 @@ func TestIngest_EmptyPayload(t *testing.T) {
 
 func TestIngest_AllInvalid(t *testing.T) {
 	drainIngestChan()
-	Ingest([]models.Ingestion{
+	service.Ingest([]models.Ingestion{
 		{Service: "", Level: "info", Message: "msg", Metadata: json.RawMessage(`{}`)},
 		{Service: "svc", Level: "", Message: "msg", Metadata: json.RawMessage(`{}`)},
 		{Service: "svc", Level: "info", Message: "", Metadata: json.RawMessage(`{}`)},
@@ -355,7 +343,7 @@ func TestIngest_AllInvalid(t *testing.T) {
 func TestIngest_MetadataForwarded(t *testing.T) {
 	drainIngestChan()
 	meta := json.RawMessage(`{"key":"value","n":42}`)
-	Ingest([]models.Ingestion{{
+	service.Ingest([]models.Ingestion{{
 		Service:  "svc",
 		Level:    "info",
 		Message:  "msg",

@@ -1,6 +1,7 @@
-package models
+package tests
 
 import (
+	"LogStream/internal/models"
 	"encoding/json"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ import (
 
 func TestIngestionJSONRoundTrip(t *testing.T) {
 	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	ing := Ingestion{
+	ing := models.Ingestion{
 		Service:   "test-service",
 		Level:     "info",
 		Message:   "test message",
@@ -23,7 +24,7 @@ func TestIngestionJSONRoundTrip(t *testing.T) {
 		t.Fatalf("failed to marshal Ingestion: %v", err)
 	}
 
-	var got Ingestion
+	var got models.Ingestion
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("failed to unmarshal Ingestion: %v", err)
 	}
@@ -46,7 +47,7 @@ func TestIngestionJSONRoundTrip(t *testing.T) {
 }
 
 func TestIngestionMetadataOmitEmpty(t *testing.T) {
-	ing := Ingestion{
+	ing := models.Ingestion{
 		Service: "s",
 		Level:   "info",
 		Message: "m",
@@ -70,7 +71,7 @@ func TestIngestionMetadataOmitEmpty(t *testing.T) {
 func TestLogJSONRoundTrip(t *testing.T) {
 	id := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	log := Log{
+	log := models.Log{
 		ID:                id,
 		Service:           "svc",
 		Level:             "warn",
@@ -85,7 +86,7 @@ func TestLogJSONRoundTrip(t *testing.T) {
 		t.Fatalf("failed to marshal Log: %v", err)
 	}
 
-	var got Log
+	var got models.Log
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("failed to unmarshal Log: %v", err)
 	}
@@ -114,7 +115,7 @@ func TestLogJSONRoundTrip(t *testing.T) {
 }
 
 func TestLogMetadataOmitEmpty(t *testing.T) {
-	log := Log{
+	log := models.Log{
 		ID:      uuid.MustParse("00000000-0000-0000-0000-000000000002"),
 		Service: "s",
 		Level:   "info",
@@ -137,7 +138,7 @@ func TestLogMetadataOmitEmpty(t *testing.T) {
 }
 
 func TestIngestionZeroValue(t *testing.T) {
-	var ing Ingestion
+	var ing models.Ingestion
 	if ing.Service != "" {
 		t.Error("zero value Ingestion should have empty Service")
 	}
@@ -147,7 +148,7 @@ func TestIngestionZeroValue(t *testing.T) {
 }
 
 func TestLogZeroValue(t *testing.T) {
-	var log Log
+	var log models.Log
 	if log.ID != uuid.Nil {
 		t.Error("zero value Log should have nil UUID")
 	}
@@ -155,7 +156,7 @@ func TestLogZeroValue(t *testing.T) {
 
 func TestLogJSONFieldNames(t *testing.T) {
 	id := uuid.MustParse("00000000-0000-0000-0000-000000000003")
-	log := Log{
+	log := models.Log{
 		ID:                id,
 		Service:           "api",
 		Level:             "error",
@@ -183,7 +184,7 @@ func TestLogJSONFieldNames(t *testing.T) {
 }
 
 func TestIngestionJSONFieldNames(t *testing.T) {
-	ing := Ingestion{
+	ing := models.Ingestion{
 		Service:   "api",
 		Level:     "info",
 		Message:   "test",

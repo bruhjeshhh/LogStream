@@ -1,6 +1,7 @@
-package api
+package tests
 
 import (
+	"LogStream/internal/api"
 	"LogStream/internal/buffer"
 	"LogStream/internal/models"
 	"bytes"
@@ -38,7 +39,7 @@ func TestDecodeIngestions_ValidPayload(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader(payload))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -58,7 +59,7 @@ func TestDecodeIngestions_WrongMethod(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/ingest", nil)
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusMethodNotAllowed)
@@ -69,7 +70,7 @@ func TestDecodeIngestions_InvalidJSON(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader([]byte(`not json`)))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
@@ -80,7 +81,7 @@ func TestDecodeIngestions_EmptyBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader([]byte{}))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
@@ -93,9 +94,8 @@ func TestDecodeIngestions_NonArrayJSON(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader([]byte(`{"service":"svc"}`)))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
-	// Single object should fail because we decode into []Ingestion
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
@@ -113,7 +113,7 @@ func TestDecodeIngestions_MultipleEntries(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader(payload))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -132,7 +132,7 @@ func TestDecodeIngestions_ResponseBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader([]byte(`[]`)))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	body := strings.TrimSpace(rec.Body.String())
 	if body != "" {
@@ -144,7 +144,7 @@ func TestDecodeIngestions_ContentType(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/ingest", bytes.NewReader([]byte(`[]`)))
 	rec := httptest.NewRecorder()
 
-	DecodeIngestions(rec, req)
+	api.DecodeIngestions(rec, req)
 
 	ct := rec.Header().Get("Content-Type")
 	if ct != "" {

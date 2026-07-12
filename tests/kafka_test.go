@@ -1,6 +1,7 @@
-package kafka
+package tests
 
 import (
+	"LogStream/internal/kafka"
 	"LogStream/internal/models"
 	"encoding/json"
 	"testing"
@@ -10,9 +11,8 @@ import (
 )
 
 func TestFlush_EmptyBatch(t *testing.T) {
-	// Should not panic or hang
-	Flush(nil)
-	Flush([]models.Log{})
+	kafka.Flush(nil)
+	kafka.Flush([]models.Log{})
 }
 
 func TestFlush_MessageMarshalling(t *testing.T) {
@@ -54,10 +54,10 @@ func TestFlush_MessageMarshalling(t *testing.T) {
 func TestFlush_MessageMarshallingWithMetadata(t *testing.T) {
 	id := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	log := models.Log{
-		ID:      id,
-		Service: "svc",
-		Level:   "error",
-		Message: "error occurred",
+		ID:       id,
+		Service:  "svc",
+		Level:    "error",
+		Message:  "error occurred",
 		Metadata: json.RawMessage(`{"error_code":500,"stack":"trace"}`),
 	}
 
@@ -103,7 +103,6 @@ func TestFlush_MultipleMessagesMarshalling(t *testing.T) {
 }
 
 func TestFlush_MarshalInvalidUTF8(t *testing.T) {
-	// JSON marshalling in Go handles invalid UTF-8 by replacing with \ufffd
 	id := uuid.MustParse("00000000-0000-0000-0000-000000000004")
 	log := models.Log{
 		ID:      id,

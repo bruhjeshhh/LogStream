@@ -1,6 +1,7 @@
-package buffer
+package tests
 
 import (
+	"LogStream/internal/buffer"
 	"LogStream/internal/models"
 	"sync"
 	"testing"
@@ -8,16 +9,6 @@ import (
 
 	"github.com/google/uuid"
 )
-
-func drainIngestChan() {
-	for {
-		select {
-		case <-IngestChan:
-		default:
-			return
-		}
-	}
-}
 
 func TestSubmit_SendsToChannel(t *testing.T) {
 	drainIngestChan()
@@ -29,10 +20,10 @@ func TestSubmit_SendsToChannel(t *testing.T) {
 		Message: "hello",
 	}
 
-	Submit(log)
+	buffer.Submit(log)
 
 	select {
-	case got := <-IngestChan:
+	case got := <-buffer.IngestChan:
 		if got.ID != log.ID {
 			t.Errorf("ID = %v, want %v", got.ID, log.ID)
 		}
@@ -55,7 +46,7 @@ func TestSubmit_MultipleLogs(t *testing.T) {
 
 	count := 10
 	for i := 0; i < count; i++ {
-		Submit(models.Log{
+		buffer.Submit(models.Log{
 			ID:      uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 			Service: "svc",
 			Level:   "info",
@@ -65,7 +56,7 @@ func TestSubmit_MultipleLogs(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		select {
-		case <-IngestChan:
+		case <-buffer.IngestChan:
 		case <-time.After(time.Second):
 			t.Fatalf("timed out waiting for log %d", i)
 		}
@@ -76,7 +67,7 @@ func TestSubmit_ChannelBuffered(t *testing.T) {
 	drainIngestChan()
 
 	for i := 0; i < 1000; i++ {
-		Submit(models.Log{
+		buffer.Submit(models.Log{
 			ID:      uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 			Service: "svc",
 			Level:   "info",
@@ -85,7 +76,7 @@ func TestSubmit_ChannelBuffered(t *testing.T) {
 	}
 
 	select {
-	case <-IngestChan:
+	case <-buffer.IngestChan:
 	case <-time.After(100 * time.Millisecond):
 		t.Error("expected at least one log in the buffered channel after 1000 submits")
 	}
@@ -101,7 +92,7 @@ func TestSubmit_ConcurrentSafe(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			Submit(models.Log{
+			buffer.Submit(models.Log{
 				ID:      uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 				Service: "svc",
 				Level:   "info",
@@ -115,7 +106,7 @@ func TestSubmit_ConcurrentSafe(t *testing.T) {
 	received := 0
 	for i := 0; i < n; i++ {
 		select {
-		case <-IngestChan:
+		case <-buffer.IngestChan:
 			received++
 		case <-time.After(time.Second):
 			t.Fatalf("timed out, received %d/%d logs", received, n)
@@ -126,8 +117,8 @@ func TestSubmit_ConcurrentSafe(t *testing.T) {
 func TestSubmit_ChannelCapacity(t *testing.T) {
 	drainIngestChan()
 
-	if cap(IngestChan) != 1000 {
-		t.Errorf("IngestChan capacity = %d, want 1000", cap(IngestChan))
+	if cap(buffer.IngestChan) != 1000 {
+		t.Errorf("IngestChan capacity = %d, want 1000", cap(buffer.IngestChan))
 	}
 }
 
@@ -145,10 +136,10 @@ func TestSubmit_PreservesAllFields(t *testing.T) {
 		ReceivedTimestamp: ts,
 	}
 
-	Submit(log)
+	buffer.Submit(log)
 
 	select {
-	case got := <-IngestChan:
+	case got := <-buffer.IngestChan:
 		if got.ID != id {
 			t.Errorf("ID = %v, want %v", got.ID, id)
 		}
