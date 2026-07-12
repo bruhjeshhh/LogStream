@@ -27,6 +27,8 @@ go.work.sum
 # Compiled binary
 ingestion
 /consumer
+cmd/search/search
+search
 
 # env file
 .env
