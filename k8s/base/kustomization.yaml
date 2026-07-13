@@ -5,3 +5,4 @@ resources:
   - ingestion.yaml
   - consumer.yaml
   - search.yaml
+  - consumer-hpa.yaml
