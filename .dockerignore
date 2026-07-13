@@ -1,0 +1,6 @@
+.git
+consumer
+ingestion
+search
+*.exe
+loadtest/results

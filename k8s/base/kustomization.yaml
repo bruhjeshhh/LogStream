@@ -1,0 +1,7 @@
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - ingestion.yaml
+  - consumer.yaml
+  - search.yaml

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -14,10 +15,12 @@ import (
 var repo *Repository
 
 func InitElastic() error {
+	address := os.Getenv("ELASTICSEARCH_URL")
+	if address == "" {
+		address = "http://localhost:9200"
+	}
 	cfg := elasticsearch.Config{
-		Addresses: []string{
-			"http://localhost:9200",
-		},
+		Addresses: []string{address},
 	}
 
 	client, err := elasticsearch.NewClient(cfg)

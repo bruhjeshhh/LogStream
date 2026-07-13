@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstream-config
+  namespace: logstream
+data:
+  KAFKA_BROKERS: kafka:9092
+  KAFKA_TOPIC: LogStream
+  KAFKA_GROUP_ID: consumers-of-logstream
+  ELASTICSEARCH_URL: http://elasticsearch-master:9200
+  METRICS_ADDR: ":9090"

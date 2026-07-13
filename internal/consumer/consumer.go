@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand/v2"
+	"os"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -48,7 +49,11 @@ type DLQMessage struct {
 }
 
 func Run(ctx context.Context, reader *kafka.Reader) error {
-	dlq := &kafka.Writer{Addr: kafka.TCP("localhost:9092"), Topic: DLQTopic, Balancer: &kafka.LeastBytes{}}
+	broker := os.Getenv("KAFKA_BROKERS")
+	if broker == "" {
+		broker = "localhost:9092"
+	}
+	dlq := &kafka.Writer{Addr: kafka.TCP(broker), Topic: DLQTopic, Balancer: &kafka.LeastBytes{}}
 	defer dlq.Close()
 	return RunWithDependencies(ctx, reader, dlq, DefaultRetryPolicy)
 }
@@ -63,6 +68,7 @@ func RunWithDependencies(ctx context.Context, reader messageReader, dlq messageW
 		}
 
 		if err := processWithRetry(ctx, msg, policy); err != nil {
+			metrics.failed.Add(1)
 			log.Printf("processing failed offset=%d: %v; sending to DLQ", msg.Offset, err)
 			if dlqErr := publishDLQ(ctx, dlq, msg, err); dlqErr != nil {
 				// Do not commit: Kafka will redeliver this record after a restart.

@@ -33,6 +33,10 @@ search
 # env file
 .env
 
+# Generated load-test output (the empty directory itself is kept with .gitkeep)
+loadtest/results/*
+!loadtest/results/.gitkeep
+
 # Editor/IDE
 # .idea/
 # .vscode/

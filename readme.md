@@ -1,5 +1,16 @@
 LogStream is a Log ingestion and searching service. It uses Kafka and Elasticsearch.
 
+## Kubernetes and load testing
+
+The beginner-friendly Kubernetes setup is in [k8s/README.md](k8s/README.md).
+It runs the Go services as Deployments and installs Kafka, Elasticsearch, and
+PostgreSQL from Helm charts. The consumer exposes `/metrics`, including its
+Kafka lag estimate, and has a CPU-based HPA from one to three replicas.
+
+The reproducible Vegeta commands and an honest results table are in
+[loadtest/README.md](loadtest/README.md). Run the tests on your machine and
+record the values there rather than committing fabricated throughput numbers.
+
 ## Failure handling
 
 The consumer provides at-least-once delivery. A Kafka record is committed only after it is indexed successfully, or after a failure record is successfully written to the `logs-dlq` topic. Malformed JSON is DLQ'd immediately. Sink failures are retried five times with jittered exponential backoff (100ms, 200ms, 400ms, 800ms, 1.6s, capped at 5s), then DLQ'd.

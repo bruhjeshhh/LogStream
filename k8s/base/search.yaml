@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search
+  namespace: logstream
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: search}
+  template:
+    metadata:
+      labels: {app: search}
+    spec:
+      containers:
+        - name: search
+          image: logstream-search:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8084}]
+          envFrom: [{configMapRef: {name: logstream-config}}]
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search
+  namespace: logstream
+spec:
+  selector: {app: search}
+  ports: [{port: 8084, targetPort: 8084}]

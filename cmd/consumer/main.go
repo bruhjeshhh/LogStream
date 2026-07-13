@@ -4,9 +4,11 @@ import (
 	"LogStream/internal/consumer"
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -26,12 +28,47 @@ func main() {
 		log.Fatalf("failed to initialize postgres: %v", err)
 	}
 
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{"localhost:9092"},
-		Topic:   "LogStream",
-		GroupID: "consumers-of-logstream",
-	})
+	brokers := os.Getenv("KAFKA_BROKERS")
+	if brokers == "" {
+		brokers = "localhost:9092"
+	}
+	topic := os.Getenv("KAFKA_TOPIC")
+	if topic == "" {
+		topic = "LogStream"
+	}
+	groupID := os.Getenv("KAFKA_GROUP_ID")
+	if groupID == "" {
+		groupID = "consumers-of-logstream"
+	}
+	reader := kafka.NewReader(kafka.ReaderConfig{Brokers: []string{brokers}, Topic: topic, GroupID: groupID})
 	defer reader.Close()
+
+	metricsAddr := os.Getenv("METRICS_ADDR")
+	if metricsAddr == "" {
+		metricsAddr = ":9090"
+	}
+	metricsMux := http.NewServeMux()
+	metricsMux.HandleFunc("GET /metrics", consumer.MetricsHandler)
+	metricsMux.HandleFunc("GET /healthz", consumer.MetricsHealthHandler)
+	metricsServer := &http.Server{Addr: metricsAddr, Handler: metricsMux}
+	go func() {
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("metrics server: %v", err)
+		}
+	}()
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				consumer.TrackLag(reader)
+			}
+		}
+	}()
+	defer metricsServer.Close()
 
 	log.Println("consumer started")
 

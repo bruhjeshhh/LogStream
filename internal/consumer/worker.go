@@ -23,6 +23,8 @@ func Process(ctx context.Context, msg kafka.Message) error {
 		entry.Level,
 		entry.Message,
 	)
+	metrics.inFlight.Add(1)
+	defer metrics.inFlight.Add(-1)
 	if err := index(ctx, entry); err != nil {
 		return fmt.Errorf("elasticsearch write: %w", err)
 	}
@@ -30,6 +32,7 @@ func Process(ctx context.Context, msg kafka.Message) error {
 	if err := writePostgres(ctx, entry); err != nil {
 		return fmt.Errorf("postgres write: %w", err)
 	}
+	metrics.processed.Add(1)
 
 	return nil
 }

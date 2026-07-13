@@ -5,20 +5,29 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"time"
 
 	"github.com/segmentio/kafka-go"
 )
 
 const (
-	broker = "localhost:9092"
-	topic  = "LogStream"
+	defaultBroker = "localhost:9092"
+	defaultTopic  = "LogStream"
 )
 
-var writer = &kafka.Writer{
-	Addr:     kafka.TCP(broker),
-	Topic:    topic,
-	Balancer: &kafka.LeastBytes{},
+func broker() string {
+	if value := os.Getenv("KAFKA_BROKERS"); value != "" { return value }
+	return defaultBroker
+}
+
+func topic() string {
+	if value := os.Getenv("KAFKA_TOPIC"); value != "" { return value }
+	return defaultTopic
+}
+
+func newWriter() *kafka.Writer {
+	return &kafka.Writer{Addr: kafka.TCP(broker()), Topic: topic(), Balancer: &kafka.LeastBytes{}}
 }
 
 func Flush(batch []models.Log) {
@@ -47,6 +56,8 @@ func Flush(batch []models.Log) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	writer := newWriter()
+	defer writer.Close()
 	if err := writer.WriteMessages(ctx, messages...); err != nil {
 		log.Printf("failed to write logs to kafka: %v", err)
 	}

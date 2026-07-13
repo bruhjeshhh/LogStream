@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  namespace: logstream
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: consumer}
+  template:
+    metadata:
+      labels: {app: consumer}
+    spec:
+      containers:
+        - name: consumer
+          image: logstream-consumer:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 9090, name: metrics}]
+          envFrom:
+            - configMapRef: {name: logstream-config}
+            - secretRef: {name: logstream-postgres}
+          readinessProbe: {httpGet: {path: /healthz, port: metrics}, initialDelaySeconds: 3}
+          livenessProbe: {httpGet: {path: /healthz, port: metrics}, initialDelaySeconds: 10}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: 500m, memory: 512Mi}
