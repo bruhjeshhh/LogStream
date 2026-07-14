@@ -11,9 +11,10 @@ $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $bin = Join-Path $results "$Name-$timestamp.bin"
 $report = Join-Path $results "$Name-$timestamp.txt"
 
-Get-Content (Join-Path $PSScriptRoot "ingest-target.json") |
-    vegeta attack -rate="$Rate/s" -duration=$Duration |
-    Tee-Object -FilePath $bin |
-    vegeta report | Tee-Object -FilePath $report
+$targets = Join-Path $PSScriptRoot "ingest-target.http"
+$body = Join-Path $PSScriptRoot "ingest-body.json"
+
+& vegeta attack -targets $targets -body $body -rate "$Rate/s" -duration $Duration -output $bin
+& vegeta report $bin | Tee-Object -FilePath $report
 
 Write-Host "Saved raw results to $bin and report to $report"

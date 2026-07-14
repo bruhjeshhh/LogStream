@@ -1,0 +1,1 @@
+[{"service":"load-test","level":"info","message":"request handled during Vegeta load test","metadata":{"source":"vegeta"}}]
