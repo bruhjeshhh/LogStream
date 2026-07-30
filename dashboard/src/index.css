@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #070b12;
+  --color-panel: #0c121b;
+  --color-panel2: #111a28;
+  --color-edge: #1b2534;
+  --color-edge2: #2a3a52;
+  --color-bright: #dbe3ee;
+  --color-dim: #93a1b5;
+  --color-faint: #5c6c83;
+  --color-cyan: #22d3ee;
+  --color-mint: #34d399;
+  --color-amber: #fbbf24;
+  --color-red: #f87171;
+  --color-rose: #fb7185;
+  --color-violet: #a78bfa;
+  --color-blue: #60a5fa;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-bright);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #223049;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes ls-flash {
+  0% {
+    background-color: rgba(251, 191, 36, 0.16);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.animate-flash {
+  animation: ls-flash 1.5s ease-out;
+}
+
+@keyframes ls-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+.animate-blink {
+  animation: ls-blink 1.2s ease-in-out infinite;
+}
