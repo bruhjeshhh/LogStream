@@ -132,7 +132,7 @@ setInterval(() => {
     }
   }
   processed += burst;
-  lag = Math.max(0, Math.round((lag + rnd(60) - 30) * (1 + rnd(5) / 100)));
+  lag = Math.max(0, Math.round(500 + (lag - 500) * 0.9 + rnd(81) - 40));
 }, 1000);
 
 function sse(res, event, data) {
