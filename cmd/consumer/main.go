@@ -50,6 +50,10 @@ func main() {
 	metricsMux := http.NewServeMux()
 	metricsMux.HandleFunc("GET /metrics", consumer.MetricsHandler)
 	metricsMux.HandleFunc("GET /healthz", consumer.MetricsHealthHandler)
+	metricsMux.HandleFunc("GET /api/metrics", consumer.DashboardMetricsHandler)
+	metricsMux.HandleFunc("GET /api/dlq", consumer.DashboardDLQHandler)
+	metricsMux.HandleFunc("GET /api/logs", consumer.DashboardLogsHandler)
+	metricsMux.HandleFunc("GET /stream", consumer.DashboardStreamHandler)
 	metricsServer := &http.Server{Addr: metricsAddr, Handler: metricsMux}
 	go func() {
 		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -68,6 +72,12 @@ func main() {
 			}
 		}
 	}()
+	ingestionURL := os.Getenv("INGESTION_URL")
+	if ingestionURL == "" {
+		ingestionURL = "http://localhost:8080"
+	}
+	go consumer.RunIngestionPoller(ctx, ingestionURL)
+	go consumer.RunESHealthPoller(ctx)
 	defer metricsServer.Close()
 
 	log.Println("consumer started")

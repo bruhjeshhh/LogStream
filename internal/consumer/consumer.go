@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"LogStream/internal/models"
 	"context"
 	"encoding/json"
 	"errors"
@@ -95,10 +96,22 @@ func processWithRetry(ctx context.Context, msg kafka.Message, policy RetryPolicy
 	if policy.MaxDelay <= 0 {
 		policy.MaxDelay = 5 * time.Second
 	}
+	// Best-effort view of the record for the observation hub. The registry key
+	// is the log ID; malformed records have none and are skipped.
+	var entry models.Log
+	_ = json.Unmarshal(msg.Value, &entry)
+	observe := entry.ID.String() != "00000000-0000-0000-0000-000000000000"
+
 	var err error
 	for attempt := 1; attempt <= policy.MaxAttempts; attempt++ {
 		err = Process(ctx, msg)
-		if err == nil || errors.Is(err, ErrMalformedMessage) {
+		if err == nil {
+			if observe {
+				hub.recordRecovered(entry)
+			}
+			return nil
+		}
+		if errors.Is(err, ErrMalformedMessage) {
 			return err
 		}
 		if attempt == policy.MaxAttempts {
@@ -110,12 +123,18 @@ func processWithRetry(ctx context.Context, msg kafka.Message, policy RetryPolicy
 		}
 		// Small jitter prevents a fleet of consumers retrying in lockstep.
 		delay = delay/2 + time.Duration(rand.Int64N(int64(delay/2)+1))
+		if observe {
+			hub.recordRetry(entry, attempt, policy.MaxAttempts, delay, err)
+		}
 		log.Printf("retrying offset=%d attempt=%d/%d in %s: %v", msg.Offset, attempt+1, policy.MaxAttempts, delay, err)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(delay):
 		}
+	}
+	if observe {
+		hub.recordDead(entry, policy.MaxAttempts, err)
 	}
 	return err
 }

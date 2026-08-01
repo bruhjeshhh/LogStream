@@ -33,6 +33,7 @@ func Process(ctx context.Context, msg kafka.Message) error {
 		return fmt.Errorf("postgres write: %w", err)
 	}
 	metrics.processed.Add(1)
+	hub.recordProcessed(entry)
 
 	return nil
 }
