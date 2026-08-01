@@ -29,6 +29,16 @@ let lag = 0;
 let dlqEntries = new Map();
 let logRing = [];
 let esUp = true;
+const failureErrors = [
+  "elasticsearch: connection refused (dial tcp 10.0.0.4:9200)",
+  "elasticsearch: bulk flush timed out after 30s",
+  "elasticsearch: 429 too many requests, bulk rejected",
+  "elasticsearch: index closed, cannot write",
+  "kafka: write failed: leader not available for partition",
+  "kafka: message too large (serialized size exceeds max)",
+  "postgres: connection pool exhausted",
+  "postgres: deadlock detected during metadata upsert",
+];
 
 const now = () => Date.now();
 const rfc = (ms) => new Date(ms).toISOString();
@@ -86,7 +96,7 @@ function seedDLQ() {
       max_attempts: 6,
       state: "retrying",
       next_retry_at: rfc(now() + 1500 + rnd(3000)),
-      last_error: "elasticsearch: connection refused (dial tcp 10.0.0.4:9200)",
+      last_error: failureErrors[rnd(failureErrors.length)],
       first_failed_at: rfc(now() - 30_000),
       last_attempt_at: rfc(now() - 1500),
     });
@@ -122,7 +132,7 @@ setInterval(() => {
         max_attempts: 6,
         state: dead ? "dead" : "retrying",
         next_retry_at: dead ? null : rfc(now() + 800 * Math.pow(2, retry_count) + rnd(400)),
-        last_error: "elasticsearch: connection refused (dial tcp 10.0.0.4:9200)",
+        last_error: failureErrors[rnd(failureErrors.length)],
         first_failed_at: prev ? prev.first_failed_at : rfc(now()),
         last_attempt_at: rfc(now()),
       });
