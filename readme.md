@@ -2,6 +2,8 @@
 
 A distributed log ingestion and search system built with Go, Kafka, Elasticsearch, and PostgreSQL. Designed for centralized log aggregation across distributed services with independent scaling of ingestion and processing tiers.
 
+Includes a live ops dashboard (React SPA) that shows throughput, latency, retries/DLQ, and a tailing log feed — see [Live Dashboard & Deployment](#live-dashboard--deployment).
+
 ## Architecture
 
 ```
@@ -36,9 +38,10 @@ A distributed log ingestion and search system built with Go, Kafka, Elasticsearc
 
 | Component | Port | Description |
 |-----------|------|-------------|
-| **Ingestion API** | 8080 | HTTP endpoint (`POST /ingest`) accepting JSON log batches. Validates, assigns UUIDv7 IDs, buffers in memory, flushes to Kafka every 5s or 100 messages. |
-| **Consumer** | 9090 (metrics) | Kafka consumer group. Processes each message: parses → indexes to Elasticsearch → writes metadata to PostgreSQL. Implements at-least-once delivery with retry/backoff and dead-letter queue (`logs-dlq`). |
+| **Ingestion API** | 8080 | HTTP endpoint (`POST /ingest`) accepting JSON log batches. Validates, assigns UUIDv7 IDs, buffers in memory, flushes to Kafka every 5s or 100 messages. Exposes `GET /api/metrics` (dashboard snapshot with p50/p99 latency). |
+| **Consumer** | 9090 | Kafka consumer group. Processes each message: parses → indexes to Elasticsearch → writes metadata to PostgreSQL. Implements at-least-once delivery with retry/backoff and dead-letter queue (`logs-dlq`). Also hosts the **observation hub** for the dashboard: `GET /metrics` (Prometheus), `GET /api/metrics`, `GET /api/dlq`, `GET /api/logs`, `GET /stream` (SSE). |
 | **Search API** | 8084 | Query endpoint (`GET /search`) over Elasticsearch with filters: service, level, time range, free-text, pagination. |
+| **Dashboard** | static | React + Vite + Tailwind SPA. Single live-updating screen; talks only to the observation hub on `:9090` via REST + SSE. Ships with a dependency-free mock hub (`dashboard/mock/server.mjs`) for development. |
 | **Kafka** | 9092 | Durable message buffer (KRaft mode, no Zookeeper). Topics: `LogStream` (input), `logs-dlq` (dead letters). |
 | **Elasticsearch** | 9200 | Full-text search and log storage. Index: `logs`. |
 | **PostgreSQL** | 5432 | Lightweight metadata registry (service names, counts, first/last seen timestamps). |
@@ -122,6 +125,36 @@ curl "http://localhost:8084/search?page=2&size=50"
 curl http://localhost:8080/api/healthz   # Ingestion
 curl http://localhost:9090/healthz      # Consumer
 ```
+
+## Live Dashboard & Deployment
+
+The dashboard is a static SPA. It reads one env var, `VITE_API_BASE` (default
+`http://localhost:9090`), which is the **observation hub** — everything the app
+shows comes from that single URL.
+
+- **Live frontend:** https://bruhjeshhh.github.io/LogStream/
+- **Backend contract + all components:** see `dashboard/README.md`
+
+### How the deployed demo is wired
+
+| Piece | Where | What runs |
+|-------|-------|-----------|
+| Frontend | GitHub Pages | Static build of `dashboard/`, deployed by `.github/workflows/pages.yml` (built with `GH_PAGES=true` so assets resolve under `/LogStream/`) |
+| Mock hub | Render | `dashboard/mock/server.mjs` via the `render.yaml` Blueprint. Generates **simulated** pipeline data (fake services, fake ES "connection refused" failures, DLQ entries) so the demo is alive without the real stack |
+| Real pipeline | local (or any VPS) | The real Go consumer on `:9090`. Set `VITE_API_BASE` to it to show real data instead of the mock |
+
+`VITE_API_BASE` is injected at build time from the repo variable
+**Settings → Secrets and variables → Actions → Variables** of the same name.
+Set it to your Render URL (or a deployed real consumer) and re-run the Pages
+workflow.
+
+Render free-tier note: free web services **sleep after 15 minutes of inactivity**
+and cold-start in ~30–60s; the dashboard reconnects automatically. Paid
+instances don't sleep.
+
+The mock's ES tile always reports `green`; its DLQ rows showing
+`elasticsearch: connection refused` are seeded demo data, not real failures.
+See `dashboard/README.md` for the full API contract and behavior notes.
 
 ## Kubernetes Deployment
 
@@ -240,11 +273,18 @@ docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 -
 
 ## Monitoring & Metrics
 
-Consumer exposes Prometheus metrics on `:9090/metrics`:
+The consumer exposes Prometheus metrics on `:9090/metrics`:
 - `logstream_consumer_processed_total` — successfully indexed records
 - `logstream_consumer_failed_total` — records sent to DLQ
 - `logstream_consumer_in_flight` — currently processing
 - `logstream_consumer_lag_messages` — estimated Kafka lag (updated every 5s)
+
+The **observation hub** (`:9090`) also serves the dashboard contract:
+`GET /api/metrics` (merged ingestion + consumer snapshot), `GET /api/dlq?limit=`
+(retry/DLQ registry), `GET /api/logs?tail=` (processed-log ring buffer), and
+`GET /stream` (multiplexed SSE: `metrics`/`log`/`dlq` events). The ingestion
+service separately exposes `GET /api/metrics` on `:8080`, which the consumer
+polls once per second.
 
 HPA in `k8s/base/consumer-hpa.yaml` uses CPU as a simple fallback; switch to lag-based scaling by configuring a Prometheus Adapter.
 
@@ -254,10 +294,12 @@ HPA in `k8s/base/consumer-hpa.yaml` uses CPU as a simple fallback; switch to lag
 LogStream/
 ├── cmd/
 │   ├── ingestion/     # HTTP ingestion server (port 8080)
-│   ├── consumer/      # Kafka consumer + metrics (port 9090)
+│   ├── consumer/      # Kafka consumer + metrics + observation hub (port 9090)
 │   └── search/        # Search API (port 8084)
+├── dashboard/         # React/Vite dashboard SPA + mock hub (see dashboard/README.md)
+│   └── mock/server.mjs
 ├── internal/
-│   ├── api/           # HTTP handlers (DecodeIngestions)
+│   ├── api/           # HTTP handlers (DecodeIngestions, metrics)
 │   ├── buffer/        # In-memory channel buffer + periodic Kafka flush
 │   ├── consumer/      # Consumer logic: process, retry, DLQ, ES/Postgres sinks
 │   ├── kafka/         # Kafka producer (Flush function)
@@ -269,6 +311,8 @@ LogStream/
 │   └── base/          # Kustomize manifests
 ├── loadtest/          # Vegeta targets, runner, results
 ├── tests/             # Integration/unit tests
+├── .github/workflows/ # GitHub Pages deployment workflow
+├── render.yaml        # Render Blueprint for the mock observation hub
 ├── docker-compose.yml # Local Kafka, ES, Postgres
 ├── Dockerfile.ingestion
 ├── Dockerfile.consumer
