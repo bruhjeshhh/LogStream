@@ -36,7 +36,7 @@ For the GitHub Pages layout (repo is served at `/LogStream/`), build with the
 base path and a public backend URL baked in:
 
 ```bash
-GH_PAGES=true VITE_API_BASE=https://<your-hub>.up.railway.app npm run build
+GH_PAGES=true VITE_API_BASE=https://<your-hub>.onrender.com npm run build
 ```
 
 ## Deploying
@@ -48,26 +48,32 @@ for the observation hub (the backend behind `VITE_API_BASE`).
 
 1. Enable Pages: repo **Settings → Pages → Source: GitHub Actions**.
 2. Set the backend URL as a repo variable: **Settings → Secrets and variables →
-   Actions → Variables** → `VITE_API_BASE` = `https://<your-hub>.up.railway.app`.
+   Actions → Variables** → `VITE_API_BASE` = `https://<your-hub>.onrender.com`.
 3. Push to `main`. The workflow in `.github/workflows/pages.yml` builds
    `dashboard/` (with `GH_PAGES=true`, so assets resolve under `/LogStream/`)
    and deploys to
    `https://<user>.github.io/LogStream/`.
 
-### Backend → Railway (mock hub)
+### Backend → Render (mock hub)
 
 The mock (`mock/server.mjs`) implements the same contract as the real Go
-consumer and can be hosted anywhere Node runs. On Railway:
+consumer and can be hosted anywhere Node runs. Two options on Render:
 
-1. **New Project → Deploy from GitHub repo** → select the LogStream repo.
-2. Set **Root Directory** to `dashboard/mock`.
-3. Railway sets `$PORT` automatically; the server also respects `PORT`,
-   so no extra config is needed (start command `node server.mjs` is already in
-   `mock/package.json`).
-4. Copy the generated `.up.railway.app` URL into `VITE_API_BASE` above.
+1. **Blueprint (recommended):** Dashboard → **New + → Blueprint** → select the
+   LogStream repo. The `render.yaml` at the repo root provisions a free Node
+   web service rooted at `dashboard/mock` (start command `npm start`; Render
+   sets `$PORT` automatically).
+2. **Manual:** **New + → Web Service** → select the repo → **Root Directory**
+   `dashboard/mock` → Runtime *Node* → **Start Command** `npm start` → Free
+   plan.
 
-Free-tier note: new accounts get a $5 credit for 30 days, then the Free plan is
-$1/month — fine for one small always-on mock service.
+Then copy the generated `.onrender.com` URL into `VITE_API_BASE` (step 2 in the
+Pages section above).
+
+Free-tier note: Render's free web services **sleep after 15 minutes of
+inactivity** and take ~30–60s to wake on the next request; the dashboard
+reconnects by itself, so it just looks slow on first open. The mock also resets
+its counters whenever the instance restarts.
 
 The mock shows **simulated** data. To show **real** pipeline data instead, point
 `VITE_API_BASE` at the deployed Go consumer (any VPS or an always-on tunnel).

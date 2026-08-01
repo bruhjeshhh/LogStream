@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: logstream-mock-hub
+    runtime: node
+    rootDir: dashboard/mock
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true

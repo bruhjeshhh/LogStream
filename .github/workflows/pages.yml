@@ -26,7 +26,7 @@ jobs:
     env:
       # Public base URL of the observation hub. Set this in
       # Settings -> Secrets and variables -> Actions -> Variables
-      # as VITE_API_BASE, e.g. https://your-mock.up.railway.app
+      # as VITE_API_BASE, e.g. https://your-mock.onrender.com
       VITE_API_BASE: ${{ vars.VITE_API_BASE }}
       GH_PAGES: "true"
     steps:
