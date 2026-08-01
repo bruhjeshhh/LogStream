@@ -32,6 +32,46 @@ npm run build      # typecheck + bundle → dist/
 npm run preview    # serve the built app
 ```
 
+For the GitHub Pages layout (repo is served at `/LogStream/`), build with the
+base path and a public backend URL baked in:
+
+```bash
+GH_PAGES=true VITE_API_BASE=https://<your-hub>.up.railway.app npm run build
+```
+
+## Deploying
+
+The frontend is a static SPA; it reads no secrets. It just needs a public URL
+for the observation hub (the backend behind `VITE_API_BASE`).
+
+### Frontend → GitHub Pages
+
+1. Enable Pages: repo **Settings → Pages → Source: GitHub Actions**.
+2. Set the backend URL as a repo variable: **Settings → Secrets and variables →
+   Actions → Variables** → `VITE_API_BASE` = `https://<your-hub>.up.railway.app`.
+3. Push to `main`. The workflow in `.github/workflows/pages.yml` builds
+   `dashboard/` (with `GH_PAGES=true`, so assets resolve under `/LogStream/`)
+   and deploys to
+   `https://<user>.github.io/LogStream/`.
+
+### Backend → Railway (mock hub)
+
+The mock (`mock/server.mjs`) implements the same contract as the real Go
+consumer and can be hosted anywhere Node runs. On Railway:
+
+1. **New Project → Deploy from GitHub repo** → select the LogStream repo.
+2. Set **Root Directory** to `dashboard/mock`.
+3. Railway sets `$PORT` automatically; the server also respects `PORT`,
+   so no extra config is needed (start command `node server.mjs` is already in
+   `mock/package.json`).
+4. Copy the generated `.up.railway.app` URL into `VITE_API_BASE` above.
+
+Free-tier note: new accounts get a $5 credit for 30 days, then the Free plan is
+$1/month — fine for one small always-on mock service.
+
+The mock shows **simulated** data. To show **real** pipeline data instead, point
+`VITE_API_BASE` at the deployed Go consumer (any VPS or an always-on tunnel).
+
 ## Environment variables
 
 | Var | Default | Purpose |

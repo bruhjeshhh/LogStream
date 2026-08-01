@@ -1,0 +1,13 @@
+{
+  "name": "logstream-mock-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mock LogStream observation hub for demo deploys (Railway/Render). Same contract as the Go consumer: /api/metrics, /api/dlq, /api/logs, /stream (SSE).",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

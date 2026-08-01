@@ -4,7 +4,7 @@
 // Usage: node mock/server.mjs [port]
 import http from "node:http";
 
-const PORT = Number(process.argv[2] ?? 9090);
+const PORT = Number(process.env.PORT ?? process.argv[2] ?? 9090);
 
 let reqs = 0;
 let accepted = 0;
