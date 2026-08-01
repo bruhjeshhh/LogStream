@@ -283,7 +283,7 @@ func TestBuildQuery_ServiceFilter(t *testing.T) {
 		"query": map[string]any{
 			"bool": map[string]any{
 				"filter": []any{
-					map[string]any{"term": map[string]any{"service": "api"}},
+					map[string]any{"term": map[string]any{"service.keyword": "api"}},
 				},
 			},
 		},
@@ -296,7 +296,7 @@ func TestBuildQuery_LevelFilter(t *testing.T) {
 		"query": map[string]any{
 			"bool": map[string]any{
 				"filter": []any{
-					map[string]any{"term": map[string]any{"level": "error"}},
+					map[string]any{"term": map[string]any{"level.keyword": "error"}},
 				},
 			},
 		},

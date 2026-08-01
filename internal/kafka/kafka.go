@@ -27,7 +27,14 @@ func topic() string {
 }
 
 func newWriter() *kafka.Writer {
-	return &kafka.Writer{Addr: kafka.TCP(broker()), Topic: topic(), Balancer: &kafka.LeastBytes{}}
+	return &kafka.Writer{
+		Addr:         kafka.TCP(broker()),
+		Topic:        topic(),
+		Balancer:     &kafka.LeastBytes{},
+		BatchTimeout: 5 * time.Millisecond,
+		BatchSize:    100,
+		BatchBytes:   1000000,
+	}
 }
 
 func Flush(batch []models.Log) {

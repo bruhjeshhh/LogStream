@@ -123,13 +123,13 @@ func BuildQuery(req SearchRequest) map[string]any {
 
 	if req.Service != "" {
 		filter = append(filter, map[string]any{
-			"term": map[string]any{"service": req.Service},
+			"term": map[string]any{"service.keyword": req.Service},
 		})
 	}
 
 	if req.Level != "" {
 		filter = append(filter, map[string]any{
-			"term": map[string]any{"level": req.Level},
+			"term": map[string]any{"level.keyword": req.Level},
 		})
 	}
 

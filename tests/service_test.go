@@ -78,8 +78,8 @@ func TestIngest_LevelCaseInsensitive(t *testing.T) {
 	}})
 	select {
 	case log := <-buffer.IngestChan:
-		if log.Level != "INFO" {
-			t.Errorf("Level = %q, want %q", log.Level, "INFO")
+		if log.Level != "info" {
+			t.Errorf("Level = %q, want %q", log.Level, "info")
 		}
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for log")

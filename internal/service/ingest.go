@@ -31,7 +31,7 @@ func Ingest(payload []models.Ingestion) (accepted, rejected int) {
 			fmt.Printf("Failed to generate UUIDv7: %v", err)
 		}
 		vldpld.ID = id
-		vldpld.Level = pld.Level
+		vldpld.Level = strings.ToLower(pld.Level)
 		vldpld.Service = pld.Service
 		vldpld.EventTimestamp = pld.Timestamp
 		vldpld.ReceivedTimestamp = time.Now()

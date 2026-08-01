@@ -28,7 +28,7 @@ go.work.sum
 ingestion
 /consumer
 cmd/search/search
-search
+/search
 
 # env file
 .env
