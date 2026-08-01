@@ -18,6 +18,7 @@ func main() {
 
 	ptr.HandleFunc("GET /api/healthz", health.App)
 	ptr.HandleFunc("POST /ingest", api.DecodeIngestions)
+	ptr.HandleFunc("GET /api/metrics", api.MetricsHandler)
 	buffer.StartIngester()
 	log.Printf("we ballin")
 	log.Fatal(srv.ListenAndServe())

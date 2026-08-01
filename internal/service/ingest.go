@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func Ingest(payload []models.Ingestion) {
+func Ingest(payload []models.Ingestion) (accepted, rejected int) {
 	// var processedPayloads []models.Log
 	var allowedLevels = []string{"trace", "debug", "info", "warn", "error", "fatal"}
 
@@ -41,6 +41,10 @@ func Ingest(payload []models.Ingestion) {
 
 		buffer.Submit(vldpld)
 	}
+
+	rejected = len(payload) - len(validPayloads)
+	accepted = len(validPayloads)
+	return accepted, rejected
 }
 
 func isJSONObject(data []byte) bool {

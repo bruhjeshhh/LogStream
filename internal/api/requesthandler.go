@@ -5,6 +5,7 @@ import (
 	"LogStream/internal/service"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 func DecodeIngestions(w http.ResponseWriter, r *http.Request) {
@@ -13,6 +14,8 @@ func DecodeIngestions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
+
 	var payload []models.Ingestion
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&payload); err != nil {
@@ -20,6 +23,6 @@ func DecodeIngestions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service.Ingest(payload)
-
+	accepted, rejected := service.Ingest(payload)
+	recordRequest(accepted, rejected, time.Since(start))
 }
